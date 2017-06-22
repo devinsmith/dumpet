@@ -788,6 +788,8 @@ main(int argc, char *argv[])
 
 	if (help)
 		usage(0);
+	else if (!context.filename)
+		usage(3);
 
 	context.iso = fopen(context.filename, "r");
 	if (!context.iso) {
