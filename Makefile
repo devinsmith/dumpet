@@ -7,7 +7,7 @@ LFLAGS:=
 CC:=gcc
 
 CFLAGS += $(shell pkg-config --cflags libxml-2.0)
-LFLAGS += -lpopt $(shell pkg-config --libs libxml-2.0)
+LFLAGS += $(shell pkg-config --libs libxml-2.0)
 
 all : dumpet
 

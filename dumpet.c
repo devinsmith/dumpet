@@ -28,8 +28,6 @@
 #include <inttypes.h>
 #include <ctype.h>
 
-#include <popt.h>
-
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
 
@@ -737,7 +735,8 @@ static int dumpet(struct context *context)
 	return 0;
 }
 
-static void usage(int error)
+static void
+usage(int error)
 {
 	FILE *outfile = error ? stderr : stdout;
 
@@ -746,7 +745,15 @@ static void usage(int error)
 	exit(error);
 }
 
-int main(int argc, char *argv[])
+static void
+args_required(char *arg)
+{
+	fprintf(stderr, "dumpet: option '%s' expects a parameter\n", arg);
+	exit(1);
+}
+
+int
+main(int argc, char *argv[])
 {
 	int rc;
 
@@ -754,30 +761,33 @@ int main(int argc, char *argv[])
 	struct context context = { 0 };
 	xmlBufferPtr xml = NULL;
 
-	poptContext optCon;
-	struct poptOption optionTable[] = {
-		{ "help", '?', POPT_ARG_NONE, &help, 0, NULL, "help"},
-		{ "dumpdisks", 'd', POPT_ARG_NONE, &context.dumpDiskImage, 0, NULL, "dump each El Torito boot image into a file"},
-		{ "dumphex", 'h', POPT_ARG_NONE, &context.dumpHex, 0, NULL, "dump each El Torito structure in hex"},
-		{ "iso", 'i', POPT_ARG_STRING, &context.filename, 0, NULL, "input ISO image"},
-		{ "xml", 'x', POPT_ARG_NONE, &context.dumpXml, 0, NULL, "dump the El Torito structure as an XML document"},
-		{0}
-	};
+	/* Process arguments */
+	while (--argc) {
+		char *p = *++argv;
 
-	optCon = poptGetContext(NULL, argc, (const char **)argv, optionTable, 0);
-
-	if ((rc = poptGetNextOpt(optCon)) < -1) {
-		fprintf(stderr, "dumpet: bad option \"%s\": %s\n",
-			poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-			poptStrerror(rc));
-		usage(2);
-		exit(2);
+		if (!strcmp(p, "-d")) {
+			context.dumpDiskImage = 1;
+		} else if (!strcmp(p, "-h")) {
+			context.dumpHex = 1;
+		} else if (!strcmp(p, "-i")) {
+			if (!argv[1]) {
+				args_required(p);
+			}
+			context.filename = *++argv, --argc;
+		} else if (!strcmp(p, "-x")) {
+			context.dumpXml = 1;
+		} else if (!strcmp(p, "--help")) {
+			usage(0);
+		} else if (!strcmp(p, "-?")) {
+			usage(0);
+		} else {
+			/* Bad options */
+			usage(2);
+		}
 	}
 
 	if (help)
 		usage(0);
-	else if (!context.filename)
-		usage(3);
 
 	context.iso = fopen(context.filename, "r");
 	if (!context.iso) {
@@ -815,8 +825,6 @@ int main(int argc, char *argv[])
 	fclose(context.iso);
 	free(context.filename);
 
-	poptFreeContext(optCon);
-
 	if (context.dumpXml) {
 		rc = xmlTextWriterEndElement(context.writer);
 		rc = xmlTextWriterEndDocument(context.writer);
@@ -828,4 +836,3 @@ int main(int argc, char *argv[])
 	return rc;
 }
 
-/* vim:set shiftwidth=8 softtabstop=8: */
